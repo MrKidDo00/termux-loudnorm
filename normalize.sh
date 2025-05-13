@@ -1,8 +1,8 @@
 # Input and output directories
 INPUT_DIR="/sdcard/Music/Telegram/"
 OUTPUT_DIR="/sdcard/Download/EncodedMusic/Normalized"
-TARGET_LUFS = -14 
-MAXIMUM_TP = -1.0
+TARGET_LUFS=-14 
+MAXIMUM_TP=-1.0
 
 # Create output directory if it doesn't exist
 mkdir -p "$OUTPUT_DIR"

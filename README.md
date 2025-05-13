@@ -67,6 +67,11 @@ If a track is at -6 LUFS, it's very loud (common in commercial pop/EDM). If it's
 #Headroom: This leaves space for dynamic peaks in music (like kicks or vocals) without clipping or harshness, especially if using EQ or enhanced bass.
 #Even if your audio is loudness normalized, the device volume still affects how intense the sound feels in your ears.
 
+#This is not opinion — it's a known tradeoff in audio engineering
+Professional mastering engineers and developers working with LUFS know this:
+Stereo gives a richer experience.
+Mono gives more predictable loudness behavior.
+
 INPUT_DIR="/sdcard/Music/Telegram/"
 OUTPUT_DIR="/sdcard/Download/EncodedMusic/Lufs_Normalized"
 TARGET_LUFS=-14

@@ -1,41 +1,43 @@
-# Input and output directories
 INPUT_DIR="/sdcard/Music/Telegram/"
-OUTPUT_DIR="/sdcard/Download/EncodedMusic/Normalized"
-TARGET_LUFS=-16
-MAXIMUM_TP=-1.5
-
-# Create output directory if it doesn't exist
+OUTPUT_DIR="/sdcard/Download/EncodedMusic/Lufs_Normalized"
+TARGET_LUFS=-14
+MAX_TRUE_PEAK_DB=-1.0  # dBFS
 mkdir -p "$OUTPUT_DIR"
 
-# Loop through each MP3 file in the input directory
+# Convert MAX_TRUE_PEAK_DB to linear scale
+MAX_TRUE_PEAK_LINEAR=$(awk "BEGIN { printf \"%.6f\", 10^($MAX_TRUE_PEAK_DB/20) }")
+echo "Limiter ceiling in linear scale: $MAX_TRUE_PEAK_LINEAR"
+
 for input_file in "$INPUT_DIR"/*.mp3; do
-  base_name=$(basename "$input_file")
-  output_file="$OUTPUT_DIR/$base_name"
+  base_name=$(basename "$input_file" .mp3)
+  output_file="$OUTPUT_DIR/${base_name}_normalized.mp3"
 
   echo "Analyzing $base_name..."
 
-  # Step 1: Analyze file to get current loudness (input_i)
+  # Analyze loudness stats
   stats=$(ffmpeg -hide_banner -i "$input_file" \
-    -af "loudnorm=I=$TARGET_LUFS:TP=$MAXIMUM_TP:print_format=json" \
+    -af "loudnorm=I=$TARGET_LUFS:TP=$MAX_TRUE_PEAK_DB:print_format=json" \
     -f null - 2>&1)
 
-  # Extract the input integrated loudness value from the JSON output
   input_i=$(echo "$stats" | grep -oP '"input_i"\s*:\s*"-?\d+\.?\d*"' | cut -d ':' -f2 | tr -d ' "')
+  input_tp=$(echo "$stats" | grep -oP '"input_tp"\s*:\s*"-?\d+\.?\d*"' | cut -d ':' -f2 | tr -d ' "')
 
-  # If loudness reading fails, skip this file
-  if [ -z "$input_i" ]; then
-    echo "Could not read LUFS for $base_name. Skipping."
+  if [ -z "$input_i" ] || [ -z "$input_tp" ]; then
+    echo "Could not read LUFS or TP for $base_name. Skipping."
     continue
   fi
 
-  # Step 2: Calculate the gain needed to reach target loudness
-  gain=$(awk "BEGIN { printf \"%.2f\", $TARGET_LUFS - $input_i }")
-  echo "Applying gain: $gain dB to match target of $TARGET_LUFS LUFS"
+  echo "Measured LUFS: $input_i dB"
+  echo "Measured True Peak: $input_tp dB"
 
-  # Step 3: Apply the gain and a limiter to avoid clipping
+  # Calculate gain to apply
+  gain=$(awk "BEGIN { printf \"%.2f\", $TARGET_LUFS - $input_i }")
+  echo "Applied gain: $gain dB"
+
+  # Apply gain and limiter, output to MP3
   ffmpeg -hide_banner -i "$input_file" \
-    -af "volume=${gain}dB,alimiter=limit=0.841" \
-    -ab 320k -ar 48000 -ac 2 "$output_file"
+    -af "volume=${gain}dB,alimiter=limit=${MAX_TRUE_PEAK_LINEAR}", -ar 48000 -ac 2 -c:a libmp3lame -qscale:a 2 \
+    "$output_file"
 done
 
 echo "Done: All files processed."

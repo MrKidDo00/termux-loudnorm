@@ -60,7 +60,7 @@ The lower the LUFS number (more negative) → Quieter the audio.
 Example:
 If a track is at -6 LUFS, it's very loud (common in commercial pop/EDM). If it's at -20 LUFS, it’s much quieter, with more headroom and dynamics (like classical music).
 
-#Recommended Device Volume: 70–80%
+#Recommended Device Volume: 70–80% (Wired or Headphone)
 #Whether you're using a wired headset or a Bluetooth headset, it's recommended to keep your device volume between 70% and 80% for these reasons:
 #Hearing safety: Listening at maximum volume for long periods can cause hearing damage. 70–80% is generally considered safe for extended use.
 #Audio quality: Many devices introduce distortion at 100% volume, especially on Bluetooth. Staying under 80% helps preserve sound clarity.

@@ -1,3 +1,4 @@
+#Recommended volume 70%-80% (Wired or Headphone)
 INPUT_DIR="/sdcard/Music/Telegram/"
 OUTPUT_DIR="/sdcard/Download/EncodedMusic/Lufs_Normalized"
 TARGET_LUFS=-14

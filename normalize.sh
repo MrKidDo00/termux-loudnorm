@@ -1,8 +1,8 @@
 # Input and output directories
 INPUT_DIR="/sdcard/Music/Telegram/"
 OUTPUT_DIR="/sdcard/Download/EncodedMusic/Normalized"
-TARGET_LUFS=-14 
-MAXIMUM_TP=-1.0
+TARGET_LUFS=-16
+MAXIMUM_TP=-1.5
 
 # Create output directory if it doesn't exist
 mkdir -p "$OUTPUT_DIR"
@@ -34,7 +34,7 @@ for input_file in "$INPUT_DIR"/*.mp3; do
 
   # Step 3: Apply the gain and a limiter to avoid clipping
   ffmpeg -hide_banner -i "$input_file" \
-    -af "volume=${gain}dB,alimiter=limit=0.89" \
+    -af "volume=${gain}dB,alimiter=limit=0.841" \
     -ab 320k -ar 48000 -ac 2 "$output_file"
 done
 

@@ -72,46 +72,57 @@ Professional mastering engineers and developers working with LUFS know this:
 Stereo gives a richer experience.
 Mono gives more predictable loudness behavior.
 
-INPUT_DIR="/sdcard/Music/Telegram/"
-OUTPUT_DIR="/sdcard/Download/EncodedMusic/Lufs_Normalized"
-TARGET_LUFS=-14
-MAX_TRUE_PEAK_DB=-1.0  # dBFS
+#!/bin/bash
+
+# Set your parameters
+INPUT_DIR="/storage/emulated/0/Music/Telegram"       # Replace with your input directory
+OUTPUT_DIR="/storage/emulated/0/Music"    # Replace with your output directory
+TARGET_LUFS=-12                 # Target loudness in LUFS
+MAX_TRUE_PEAK_DB=-1.5           # Maximum true peak in dB
+
+# FFmpeg output parameters
+OUTPUT_SAMPLE_RATE=48000        # -ar
+OUTPUT_CHANNELS=2               # -ac
+OUTPUT_CODEC="libmp3lame"       # -c:a
+OUTPUT_QUALITY=2                # -qscale:a
+
+# Ensure output directory exists
 mkdir -p "$OUTPUT_DIR"
 
-# Convert MAX_TRUE_PEAK_DB to linear scale
-MAX_TRUE_PEAK_LINEAR=$(awk "BEGIN { printf \"%.6f\", 10^($MAX_TRUE_PEAK_DB/20) }")
-echo "Limiter ceiling in linear scale: $MAX_TRUE_PEAK_LINEAR"
-
+# Loop through all MP3 files in input directory
 for input_file in "$INPUT_DIR"/*.mp3; do
-  base_name=$(basename "$input_file" .mp3)
-  output_file="$OUTPUT_DIR/${base_name}_normalized.mp3"
+    base_name=$(basename "$input_file" .mp3)
+    output_file="$OUTPUT_DIR/${base_name}_normalized.mp3"
 
-  echo "Analyzing $base_name..."
+    echo "Analyzing $base_name..."
 
-  # Analyze loudness stats
-  stats=$(ffmpeg -hide_banner -i "$input_file" \
-    -af "loudnorm=I=$TARGET_LUFS:TP=$MAX_TRUE_PEAK_DB:print_format=json" \
-    -f null - 2>&1)
+    # Analyze loudness stats using FFmpeg loudnorm
+    stats=$(ffmpeg -hide_banner -i "$input_file" \
+        -af "loudnorm=I=$TARGET_LUFS:TP=$MAX_TRUE_PEAK_DB:print_format=json" \
+        -f null - 2>&1)
 
-  input_i=$(echo "$stats" | grep -oP '"input_i"\s*:\s*"-?\d+\.?\d*"' | cut -d ':' -f2 | tr -d ' "')
-  input_tp=$(echo "$stats" | grep -oP '"input_tp"\s*:\s*"-?\d+\.?\d*"' | cut -d ':' -f2 | tr -d ' "')
+    # Extract input LUFS and True Peak
+    input_i=$(echo "$stats" | grep -oP '"input_i"\s*:\s*"-?\d+\.?\d*"' | cut -d ':' -f2 | tr -d ' "')
+    input_tp=$(echo "$stats" | grep -oP '"input_tp"\s*:\s*"-?\d+\.?\d*"' | cut -d ':' -f2 | tr -d ' "')
 
-  if [ -z "$input_i" ] || [ -z "$input_tp" ]; then
-    echo "Could not read LUFS or TP for $base_name. Skipping."
-    continue
-  fi
+    if [ -z "$input_i" ] || [ -z "$input_tp" ]; then
+        echo "Could not read LUFS or TP for $base_name. Skipping."
+        continue
+    fi
 
-  echo "Measured LUFS: $input_i dB"
-  echo "Measured True Peak: $input_tp dB"
+    echo "Measured LUFS: $input_i dB"
+    echo "Measured True Peak: $input_tp dB"
 
-  # Calculate gain to apply
-  gain=$(awk "BEGIN { printf \"%.2f\", $TARGET_LUFS - $input_i }")
-  echo "Applied gain: $gain dB"
+    # Calculate gain to apply
+    gain=$(awk "BEGIN { printf \"%.2f\", $TARGET_LUFS - $input_i }")
+    echo "Applied gain: $gain dB"
 
-  # Apply gain and limiter, output to MP3
-  ffmpeg -hide_banner -i "$input_file" \
-    -af "volume=${gain}dB,alimiter=limit=${MAX_TRUE_PEAK_LINEAR}", -ar 48000 -ac 2 -c:a libmp3lame -qscale:a 2 \
-    "$output_file"
+    # Apply gain only (no limiter), output normalized MP3 using variables
+    ffmpeg -hide_banner -i "$input_file" \
+        -af "volume=${gain}dB" \
+        -ar $OUTPUT_SAMPLE_RATE -ac $OUTPUT_CHANNELS -c:a $OUTPUT_CODEC -qscale:a $OUTPUT_QUALITY \
+        "$output_file"
+
 done
 
 echo "Done: All files processed."
